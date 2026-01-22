@@ -1,7 +1,9 @@
 mod cmd;
 
 // 这两行可能不能去掉，否则会导致linux打包软件报错
+#[allow(unused_imports)]
 use std::path::Path;
+#[allow(unused_imports)]
 use tauri::Manager;
 
 #[tauri::command]

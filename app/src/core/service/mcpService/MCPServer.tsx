@@ -33,9 +33,14 @@ export class MCPServer {
     // Expose MCP API via window global
     this.setupWindowAPI();
 
+    // Setup HTTP endpoints
+    this.setupHttpEndpoints();
+
     this.isRunning = true;
 
-    console.log(`[MCPServer] MCP API initialized and available via window.__mcpServer`);
+    console.log(`[MCPServer] MCP API initialized`);
+    console.log(`[MCPServer] - JavaScript API: window.__mcpServer`);
+    console.log(`[MCPServer] - HTTP endpoints: http://localhost:1420/__mcp/*`);
   }
 
   /**
@@ -473,12 +478,63 @@ Please suggest ways to better organize this project graph, including:
   }
 
   /**
+   * Setup HTTP endpoints for external access
+   */
+  private setupHttpEndpoints() {
+    // Create HTTP endpoint handler
+    (window as any).__mcpHttpHandler = async (request: { method: string; path: string; body?: any }) => {
+      const { method, path, body } = request;
+
+      try {
+        // Remove /__mcp prefix
+        const cleanPath = path.replace(/^\/__mcp/, "");
+        const parts = cleanPath.split("/").filter((p) => p);
+
+        // Route requests
+        if (method === "GET" && parts[0] === "resources" && parts.length === 1) {
+          return { status: 200, body: await this.listResources() };
+        }
+
+        if (method === "GET" && parts[0] === "resources" && parts.length === 2) {
+          const uri = decodeURIComponent(parts[1]);
+          return { status: 200, body: await this.readResource(uri) };
+        }
+
+        if (method === "GET" && parts[0] === "tools") {
+          return { status: 200, body: await this.listTools() };
+        }
+
+        if (method === "POST" && parts[0] === "tools" && parts.length === 2) {
+          const toolName = parts[1];
+          return { status: 200, body: await this.callTool(toolName, body || {}) };
+        }
+
+        if (method === "GET" && parts[0] === "prompts" && parts.length === 1) {
+          return { status: 200, body: await this.listPrompts() };
+        }
+
+        if (method === "GET" && parts[0] === "prompts" && parts.length === 2) {
+          const promptName = parts[1];
+          return { status: 200, body: await this.getPrompt(promptName) };
+        }
+
+        return { status: 404, body: { error: "Not found" } };
+      } catch (error: any) {
+        return { status: 500, body: { error: error.message || String(error) } };
+      }
+    };
+
+    console.log("[MCPServer] HTTP endpoint handler registered");
+  }
+
+  /**
    * Dispose the MCP server
    */
   async dispose() {
     if (this.isRunning) {
       // Clean up global API
       delete (window as any).__mcpServer;
+      delete (window as any).__mcpHttpHandler;
 
       this.isRunning = false;
       console.log("[MCPServer] MCP Server disposed");

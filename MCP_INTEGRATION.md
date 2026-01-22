@@ -4,7 +4,7 @@
 
 Project Graph now supports the Model Context Protocol (MCP), enabling AI agents like Claude Desktop, ChatGPT, and other MCP-compatible clients to interact with your project graphs programmatically.
 
-**Communication Method**: The MCP server uses **HTTP/JavaScript API** instead of stdio, making it accessible from within the running application and through browser-based tools.
+**Communication Method**: The MCP server uses **HTTP API** for external clients and **JavaScript API** for internal testing, making it accessible from external tools like Claude Desktop and VS Code.
 
 ## Features
 
@@ -48,24 +48,54 @@ Pre-configured prompts for common AI tasks:
 
 ## Usage
 
-### Connecting from Claude Desktop
+### Connecting from External Tools (Claude Desktop, VS Code)
 
-Add the following to your Claude Desktop MCP configuration:
+**Step 1: Start the MCP HTTP Bridge Server**
+
+```bash
+node mcp-http-bridge.js
+```
+
+This creates an HTTP server on port 3100 that forwards MCP requests to your running Project Graph application.
+
+**Step 2: Configure your MCP client**
+
+For **Claude Desktop**, add to your config file:
+
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
 
 ```json
 {
   "mcpServers": {
     "project-graph": {
-      "command": "/path/to/project-graph",
-      "args": []
+      "url": "http://localhost:3100"
     }
   }
 }
 ```
 
-### Connecting from Other MCP Clients
+For **VS Code MCP extension**, create/update `.vscode/mcp.json`:
 
-The MCP server uses stdio transport and can be connected by any MCP-compatible client. The server is automatically initialized when a project is loaded.
+```json
+{
+  "servers": {
+    "project-graph": {
+      "type": "http",
+      "url": "http://localhost:3100"
+    }
+  }
+}
+```
+
+**Step 3: Start Project Graph**
+
+```bash
+cd app
+pnpm tauri dev
+```
+
+Now external MCP clients can communicate with Project Graph through the bridge server!
 
 ## Example Interactions
 
