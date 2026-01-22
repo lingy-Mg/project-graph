@@ -140,6 +140,14 @@ export class MCPServer {
           id: edge.uuid,
           source: edge.source.uuid,
           target: edge.target.uuid,
+          sourceRectangleRate: {
+            x: edge.sourceRectangleRate.x,
+            y: edge.sourceRectangleRate.y,
+          },
+          targetRectangleRate: {
+            x: edge.targetRectangleRate.x,
+            y: edge.targetRectangleRate.y,
+          },
         }));
 
         return {
@@ -276,6 +284,81 @@ export class MCPServer {
             required: ["nodeId"],
           },
         },
+        {
+          name: "updateNodePosition",
+          description: "Update the position of a node",
+          inputSchema: {
+            type: "object",
+            properties: {
+              nodeId: {
+                type: "string",
+                description: "UUID of the node to update",
+              },
+              x: {
+                type: "number",
+                description: "New X coordinate",
+              },
+              y: {
+                type: "number",
+                description: "New Y coordinate",
+              },
+            },
+            required: ["nodeId", "x", "y"],
+          },
+        },
+        {
+          name: "updateNodeSize",
+          description: "Update the size of a node",
+          inputSchema: {
+            type: "object",
+            properties: {
+              nodeId: {
+                type: "string",
+                description: "UUID of the node to update",
+              },
+              width: {
+                type: "number",
+                description: "New width",
+              },
+              height: {
+                type: "number",
+                description: "New height (optional, will be auto-calculated based on text if not provided)",
+              },
+            },
+            required: ["nodeId", "width"],
+          },
+        },
+        {
+          name: "updateEdgeDirection",
+          description:
+            "Update the direction of an edge connection. Controls which side of the nodes the edge connects to. Use rate values between 0 and 1 to specify the position on the node's rectangle. Common values: 0.5 (center), 0.01 (left/top edge), 0.99 (right/bottom edge)",
+          inputSchema: {
+            type: "object",
+            properties: {
+              edgeId: {
+                type: "string",
+                description: "UUID of the edge to update",
+              },
+              sourceRateX: {
+                type: "number",
+                description: "X rate for source connection point (0-1, where 0.5 is center)",
+              },
+              sourceRateY: {
+                type: "number",
+                description: "Y rate for source connection point (0-1, where 0.5 is center)",
+              },
+              targetRateX: {
+                type: "number",
+                description: "X rate for target connection point (0-1, where 0.5 is center)",
+              },
+              targetRateY: {
+                type: "number",
+                description: "Y rate for target connection point (0-1, where 0.5 is center)",
+              },
+            },
+            required: ["edgeId"],
+          },
+        },
       ],
     }));
 
@@ -367,6 +450,93 @@ export class MCPServer {
             {
               type: "text",
               text: JSON.stringify({ success: true, nodeId }),
+            },
+          ],
+        };
+      }
+
+      if (name === "updateNodePosition") {
+        const { nodeId, x, y } = args as { nodeId: string; x: number; y: number };
+        const node = this.project.stageManager.get(nodeId);
+
+        if (!node || !(node instanceof TextNode)) {
+          throw new Error("Node not found or not a text node");
+        }
+
+        node.moveTo(new Vector(x, y));
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({ success: true, nodeId, x, y }),
+            },
+          ],
+        };
+      }
+
+      if (name === "updateNodeSize") {
+        const { nodeId, width } = args as { nodeId: string; width: number; height?: number };
+        const node = this.project.stageManager.get(nodeId);
+
+        if (!node || !(node instanceof TextNode)) {
+          throw new Error("Node not found or not a text node");
+        }
+
+        node.resizeWidthTo(width);
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                success: true,
+                nodeId,
+                width,
+                actualHeight: node.rectangle.size.y,
+              }),
+            },
+          ],
+        };
+      }
+
+      if (name === "updateEdgeDirection") {
+        const { edgeId, sourceRateX, sourceRateY, targetRateX, targetRateY } = args as {
+          edgeId: string;
+          sourceRateX?: number;
+          sourceRateY?: number;
+          targetRateX?: number;
+          targetRateY?: number;
+        };
+        const edge = this.project.stageManager.get(edgeId);
+
+        if (!edge || !(edge instanceof Edge)) {
+          throw new Error("Edge not found");
+        }
+
+        if (sourceRateX !== undefined && sourceRateY !== undefined) {
+          edge.sourceRectangleRate = new Vector(sourceRateX, sourceRateY);
+        }
+        if (targetRateX !== undefined && targetRateY !== undefined) {
+          edge.targetRectangleRate = new Vector(targetRateX, targetRateY);
+        }
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                success: true,
+                edgeId,
+                sourceRectangleRate: {
+                  x: edge.sourceRectangleRate.x,
+                  y: edge.sourceRectangleRate.y,
+                },
+                targetRectangleRate: {
+                  x: edge.targetRectangleRate.x,
+                  y: edge.targetRectangleRate.y,
+                },
+              }),
             },
           ],
         };
