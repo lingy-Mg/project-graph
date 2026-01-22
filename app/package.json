@@ -20,6 +20,7 @@
     "@graphif/serializer": "workspace:*",
     "@graphif/shapes": "workspace:*",
     "@headlessui/react": "^2.2.4",
+    "@modelcontextprotocol/sdk": "^1.25.3",
     "@modyfi/vite-plugin-yaml": "^1.1.1",
     "@msgpack/msgpack": "^3.1.2",
     "@octokit/rest": "^22.0.0",
