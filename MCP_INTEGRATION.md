@@ -13,7 +13,7 @@ The MCP integration provides three main capabilities:
 Resources allow AI agents to read project data:
 
 - **`project://nodes`** - List all text nodes with their locations and sizes
-- **`project://edges`** - List all edges (connections) between nodes
+- **`project://edges`** - List all edges (connections) between nodes, including connection directions (sourceRectangleRate and targetRectangleRate)
 - **`project://tags`** - List all tags in the project
 - **`project://screenshot`** - Capture a screenshot of the current project view
 
@@ -27,6 +27,13 @@ Tools allow AI agents to perform operations on your project:
   - Parameters: `sourceId` (string), `targetId` (string)
 - **`updateNode`** - Update the text content of a node
   - Parameters: `nodeId` (string), `text` (string)
+- **`updateNodePosition`** - Update the position of a node
+  - Parameters: `nodeId` (string), `x` (number), `y` (number)
+- **`updateNodeSize`** - Update the size of a node
+  - Parameters: `nodeId` (string), `width` (number), `height` (number, optional)
+- **`updateEdgeDirection`** - Update the direction of an edge connection
+  - Parameters: `edgeId` (string), `sourceRateX` (number, 0-1), `sourceRateY` (number, 0-1), `targetRateX` (number, 0-1), `targetRateY` (number, 0-1)
+  - Note: Rate values control which side of the nodes the edge connects to. Use 0.5 for center, 0.01 for left/top edge, 0.99 for right/bottom edge
 - **`deleteNode`** - Delete a node from the project
   - Parameters: `nodeId` (string)
 
@@ -99,6 +106,44 @@ const screenshot = await readResource("project://screenshot");
 // Returns: base64-encoded PNG image
 ```
 
+### Updating Node Position
+
+```typescript
+// AI agent can move a node to a new position
+const result = await callTool("updateNodePosition", {
+  nodeId: "node-uuid",
+  x: 300,
+  y: 400,
+});
+// Returns: { success: true, nodeId: "node-uuid", x: 300, y: 400 }
+```
+
+### Updating Node Size
+
+```typescript
+// AI agent can resize a node
+const result = await callTool("updateNodeSize", {
+  nodeId: "node-uuid",
+  width: 250,
+});
+// Returns: { success: true, nodeId: "node-uuid", width: 250, actualHeight: 120 }
+// Note: Height is auto-calculated based on text content
+```
+
+### Updating Edge Direction
+
+```typescript
+// AI agent can adjust which sides of nodes an edge connects to
+const result = await callTool("updateEdgeDirection", {
+  edgeId: "edge-uuid",
+  sourceRateX: 0.99, // Right side of source node
+  sourceRateY: 0.5, // Middle vertically
+  targetRateX: 0.01, // Left side of target node
+  targetRateY: 0.5, // Middle vertically
+});
+// Returns: { success: true, edgeId: "edge-uuid", sourceRectangleRate: {x: 0.99, y: 0.5}, targetRectangleRate: {x: 0.01, y: 0.5} }
+```
+
 ## Technical Details
 
 ### Architecture
@@ -161,7 +206,7 @@ Potential future improvements:
 
 2. **Additional Tools**:
    - Batch node operations
-   - Auto-layout triggers
+   - Auto-layout triggers (automated graph layout algorithms)
    - Tag management
    - Section creation/management
 
