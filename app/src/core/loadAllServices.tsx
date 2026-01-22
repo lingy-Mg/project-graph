@@ -72,6 +72,7 @@ import { HistoryManager } from "@/core/stage/stageManager/StageHistoryManager";
 import { StageManager } from "@/core/stage/stageManager/StageManager";
 import { AutoSaveBackupService } from "./service/dataFileService/AutoSaveBackupService";
 import { ReferenceManager } from "./stage/stageManager/concreteMethods/StageReferenceManager";
+import { MCPServer } from "./service/mcpService/MCPServer";
 
 /**
  * 以下方法在项目初始化之前加载所有服务
@@ -164,6 +165,9 @@ export function loadAllServicesBeforeInit(project: Project): void {
 
   // 快捷键交互
   project.loadService(KeyBindsRegistrar);
+
+  // MCP Server
+  project.loadService(MCPServer);
 
   // 自动保存与备份
   project.loadService(AutoSaveBackupService);

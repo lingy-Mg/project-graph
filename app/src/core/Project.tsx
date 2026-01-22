@@ -49,6 +49,7 @@ import type { ContentSearch } from "@/core/service/dataManageService/contentSear
 import type { CopyEngine } from "@/core/service/dataManageService/copyEngine/copyEngine";
 import type { Effects } from "@/core/service/feedbackService/effectEngine/effectMachine";
 import { StageStyleManager } from "@/core/service/feedbackService/stageStyle/StageStyleManager";
+import type { MCPServer } from "@/core/service/mcpService/MCPServer";
 import type { Camera } from "@/core/stage/Camera";
 import type { Canvas } from "@/core/stage/Canvas";
 import { GraphMethods } from "@/core/stage/stageManager/basicMethods/GraphMethods";
@@ -605,6 +606,7 @@ declare module "./Project" {
     stageStyleManager: StageStyleManager;
     autoSaveBackup: AutoSaveBackupService;
     referenceManager: ReferenceManager;
+    mcpServer: MCPServer;
   }
 }
 
