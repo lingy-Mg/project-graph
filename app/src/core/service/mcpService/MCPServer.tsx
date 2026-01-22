@@ -14,6 +14,9 @@ import { Vector } from "@graphif/data-structures";
 import { TextNode } from "@/core/stage/stageObject/entity/TextNode";
 import { Edge } from "@/core/stage/stageObject/association/Edge";
 
+const DEFAULT_NODE_WIDTH = 200;
+const DEFAULT_NODE_HEIGHT = 100;
+
 /**
  * MCP (Model Context Protocol) Server Service
  * Exposes project-graph data and operations to AI agents through MCP protocol
@@ -30,8 +33,7 @@ export class MCPServer {
    */
   async init() {
     if (this.isRunning) {
-      console.warn("[MCPServer] Server is already running");
-      return;
+      throw new Error("[MCPServer] Server is already running. Cannot reinitialize.");
     }
 
     this.server = new Server(
@@ -153,12 +155,14 @@ export class MCPServer {
 
       if (uri === "project://screenshot") {
         try {
+          // Returns base64-encoded PNG string
           const base64Image = await invoke<string>("capture_app_screenshot");
           return {
             contents: [
               {
                 uri,
                 mimeType: "image/png",
+                // MCP expects base64 string in blob field for binary data
                 blob: base64Image,
               },
             ],
@@ -209,6 +213,14 @@ export class MCPServer {
               y: {
                 type: "number",
                 description: "Y coordinate of the node",
+              },
+              width: {
+                type: "number",
+                description: `Width of the node (default: ${DEFAULT_NODE_WIDTH})`,
+              },
+              height: {
+                type: "number",
+                description: `Height of the node (default: ${DEFAULT_NODE_HEIGHT})`,
               },
             },
             required: ["text", "x", "y"],
@@ -271,8 +283,16 @@ export class MCPServer {
       const { name, arguments: args } = request.params;
 
       if (name === "addNode") {
-        const { text, x, y } = args as { text: string; x: number; y: number };
-        const node = new TextNode(new Vector(x, y), new Vector(200, 100));
+        const { text, x, y, width, height } = args as {
+          text: string;
+          x: number;
+          y: number;
+          width?: number;
+          height?: number;
+        };
+        const nodeWidth = width ?? DEFAULT_NODE_WIDTH;
+        const nodeHeight = height ?? DEFAULT_NODE_HEIGHT;
+        const node = new TextNode(new Vector(x, y), new Vector(nodeWidth, nodeHeight));
         node.text = text;
         this.project.stageManager.add(node);
 

@@ -1,4 +1,5 @@
 use tauri::{AppHandle, Manager, Window};
+use base64::prelude::*;
 
 #[tauri::command]
 pub async fn capture_window_screenshot(window: Window) -> Result<String, String> {
@@ -6,7 +7,7 @@ pub async fn capture_window_screenshot(window: Window) -> Result<String, String>
         .screenshot()
         .map_err(|e| format!("Failed to capture screenshot: {}", e))?;
     
-    Ok(base64::encode(&image))
+    Ok(BASE64_STANDARD.encode(&image))
 }
 
 #[tauri::command]
@@ -19,5 +20,5 @@ pub async fn capture_app_screenshot(app: AppHandle) -> Result<String, String> {
         .screenshot()
         .map_err(|e| format!("Failed to capture screenshot: {}", e))?;
     
-    Ok(base64::encode(&image))
+    Ok(BASE64_STANDARD.encode(&image))
 }
