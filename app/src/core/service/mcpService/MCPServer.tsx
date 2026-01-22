@@ -36,11 +36,15 @@ export class MCPServer {
     // Setup HTTP endpoints
     this.setupHttpEndpoints();
 
+    // Start file queue processor
+    this.startFileQueueProcessor();
+
     this.isRunning = true;
 
     console.log(`[MCPServer] MCP API initialized`);
     console.log(`[MCPServer] - JavaScript API: window.__mcpServer`);
-    console.log(`[MCPServer] - HTTP endpoints: http://localhost:1420/__mcp/*`);
+    console.log(`[MCPServer] - File queue processor: active`);
+    console.log(`[MCPServer] - Ready for external HTTP bridge connections`);
   }
 
   /**
@@ -528,15 +532,77 @@ Please suggest ways to better organize this project graph, including:
   }
 
   /**
+   * Start file queue processor for HTTP bridge communication
+   */
+  private startFileQueueProcessor() {
+    // Poll for requests from the file queue
+    const processQueue = async () => {
+      if (!this.isRunning) return;
+
+      try {
+        // Check for request files
+        const queuePath = "../../.mcp-queue/requests";
+        const responsePath = "../../.mcp-queue/responses";
+
+        // Use Tauri's fs plugin to read directory
+        const { readDir, readTextFile, writeTextFile } = await import("@tauri-apps/plugin-fs");
+
+        try {
+          const entries = await readDir(queuePath);
+
+          for (const entry of entries) {
+            if (entry.name.endsWith(".json")) {
+              try {
+                // Read request
+                const requestContent = await readTextFile(`${queuePath}/${entry.name}`);
+                const request = JSON.parse(requestContent);
+
+                // Process request
+                const response = await (window as any).__mcpHttpHandler({
+                  method: request.method,
+                  path: request.path,
+                  body: request.body,
+                });
+
+                // Write response
+                const responseFile = `${responsePath}/${entry.name}`;
+                await writeTextFile(responseFile, JSON.stringify(response));
+
+                console.log(`[MCPServer] Processed request: ${request.method} ${request.path}`);
+              } catch (error) {
+                console.error(`[MCPServer] Error processing request ${entry.name}:`, error);
+              }
+            }
+          }
+        } catch {
+          // Queue directory might not exist yet, that's okay
+        }
+      } catch (error) {
+        console.error("[MCPServer] Error in file queue processor:", error);
+      }
+
+      // Continue polling
+      if (this.isRunning) {
+        setTimeout(processQueue, 100); // Poll every 100ms
+      }
+    };
+
+    // Start processing
+    processQueue();
+    console.log("[MCPServer] File queue processor started");
+  }
+
+  /**
    * Dispose the MCP server
    */
   async dispose() {
     if (this.isRunning) {
+      this.isRunning = false;
+
       // Clean up global API
       delete (window as any).__mcpServer;
       delete (window as any).__mcpHttpHandler;
 
-      this.isRunning = false;
       console.log("[MCPServer] MCP Server disposed");
     }
   }
