@@ -44,6 +44,14 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_system_info::init())
         .setup(|app| {
+            // Start MCP HTTP server
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                if let Err(e) = cmd::mcp_server::start_mcp_server(app_handle).await {
+                    eprintln!("[MCP Server] Failed to start: {}", e);
+                }
+            });
+
             #[cfg(debug_assertions)] // only include this code on debug builds
             {
                 // let window = app.get_webview_window("main").unwrap();
@@ -69,6 +77,8 @@ pub fn run() {
             cmd::fs::read_folder_recursive,
             cmd::screenshot::capture_window_screenshot,
             cmd::screenshot::capture_app_screenshot,
+            cmd::mcp_handler::mcp_read_resource,
+            cmd::mcp_handler::mcp_call_tool,
             write_stdout,
             write_stderr,
             exit,

@@ -61,11 +61,19 @@ export class MCPServer {
 
       // Resources
       listResources: async () => this.listResources(),
-      readResource: async (uri: string) => this.readResource(uri),
+      readResource: async (uri: string) => {
+        const result = await this.readResource(uri);
+        console.log("[MCP] readResource result:", JSON.stringify(result, null, 2));
+        return result;
+      },
 
       // Tools
       listTools: async () => this.listTools(),
-      callTool: async (name: string, args: any) => this.callTool(name, args),
+      callTool: async (name: string, args: any) => {
+        const result = await this.callTool(name, args);
+        console.log("[MCP] callTool result:", JSON.stringify(result, null, 2));
+        return result;
+      },
 
       // Prompts
       listPrompts: async () => this.listPrompts(),
