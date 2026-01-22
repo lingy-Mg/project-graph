@@ -4,6 +4,8 @@
 
 Project Graph now supports the Model Context Protocol (MCP), enabling AI agents like Claude Desktop, ChatGPT, and other MCP-compatible clients to interact with your project graphs programmatically.
 
+**Communication Method**: The MCP server uses **HTTP/JavaScript API** instead of stdio, making it accessible from within the running application and through browser-based tools.
+
 ## Features
 
 The MCP integration provides three main capabilities:
@@ -158,42 +160,53 @@ const result = await callTool("updateEdgeDirection", {
 │  └──────────┬───────────────────┘  │
 │             │                       │
 │  ┌──────────▼───────────────────┐  │
-│  │  Exposed Capabilities:       │  │
+│  │  Exposed via window global:  │  │
+│  │  window.__mcpServer          │  │
 │  │  • Resources (data access)   │  │
 │  │  • Tools (operations)        │  │
 │  │  • Prompts (AI templates)    │  │
-│  │  • Screenshots (Tauri)       │  │
 │  └──────────────────────────────┘  │
 └─────────────────────────────────────┘
-           │ stdio (JSON-RPC)
+           │ JavaScript API
            ▼
 ┌─────────────────────────────────────┐
-│   AI Agent (Claude/ChatGPT)        │
+│   Browser DevTools / Extensions    │
 └─────────────────────────────────────┘
 ```
 
+### Communication Method
+
+The MCP server uses a **JavaScript global API** (window.\_\_mcpServer) instead of stdio transport. This approach:
+
+- ✅ Works seamlessly with Tauri desktop applications
+- ✅ Can be accessed directly from browser DevTools
+- ✅ Enables testing and debugging in the application console
+- ✅ Can be bridged to external HTTP servers if needed
+
+For external tools like Claude Desktop or VS Code to connect, you would need to create an HTTP bridge server that:
+
+1. Communicates with the running Project Graph app via its window API
+2. Exposes an HTTP/SSE endpoint for MCP clients
+
 ### Implementation Files
 
-- **Frontend**: `app/src/core/service/mcpService/MCPServer.tsx`
-- **Backend**: `app/src-tauri/src/cmd/screenshot.rs`
-- **Service Registration**: `app/src/core/loadAllServices.tsx`
+- **MCP Server**: [app/src/core/service/mcpService/MCPServer.tsx](app/src/core/service/mcpService/MCPServer.tsx) - Main MCP service implementation
+- **Screenshot Backend**: `app/src-tauri/src/cmd/screenshot.rs` - Tauri commands for screenshots
+- **Service Registration**: `app/src/core/loadAllServices.tsx` - Service initialization
 
 ### Screenshot Implementation
 
-The screenshot functionality is implemented using Tauri's native screenshot API:
+Screenshots are captured using Tauri's native screenshot API:
 
-**Rust Commands**:
-
-- `capture_window_screenshot` - Captures the current window
 - `capture_app_screenshot` - Captures the main application window
-
-The screenshots are returned as base64-encoded PNG images, making them compatible with AI vision models.
+- Returns base64-encoded PNG images compatible with AI vision models
 
 ## Security Considerations
 
-- The MCP server only accepts connections via stdio (no network exposure)
-- All operations are subject to the same permissions as the main application
+- The MCP API is only accessible within the running application (via window global)
+- All operations have the same permissions as the main application
 - Screenshot captures only the application window, not the entire screen
+- No network ports are exposed by default
 
 ## Future Enhancements
 
